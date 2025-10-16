@@ -5,7 +5,7 @@ import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import About from "./pages/About";
 import Profile from "./pages/Profile";
-import Header from "./componenets/Header";
+import Header from "./components/Header";
 
 function App() {
   return (
