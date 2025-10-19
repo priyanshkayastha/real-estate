@@ -6,7 +6,7 @@ import { signInSuccess } from "../redux/user/userSlice";
 import { useNavigate } from "react-router-dom";
 
 const OAuth = () => {
-    const dispath=useDispatch()
+    const dispatch=useDispatch()
     const navigate=useNavigate()
   const handleGoogleClick = async () => {
     try {
@@ -26,7 +26,7 @@ const OAuth = () => {
         }),
       });
       const data=await res.json()
-      dispath(signInSuccess(data))
+      dispatch(signInSuccess(data))
       navigate('/')
 
     } catch (error) {
