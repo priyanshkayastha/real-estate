@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { signInFailure, signInStart, signInSuccess } from "../redux/user/userSlice";
+import OAuth from "../components/OAuth";
 
 const SignIn = () => {
   const [formData, setData] = useState({});
@@ -69,8 +70,16 @@ const SignIn = () => {
         <button type="submit" className="bg-slate-700 rounded p-4">
           {loading? 'Loading...':'Sign in'}
         </button>
+        <OAuth/>
         {error && <p className="text-red-500 text-center">{error}</p>}
+
       </form>
+      <div className="flex gap-2 mt-5">
+              <p>Dont have an account?</p>
+              <Link to={"/sign-up"}>
+                <span className="text-blue-700">Sign Up</span>
+              </Link>
+            </div>
     </div>
   );
 };
