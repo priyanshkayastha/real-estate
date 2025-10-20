@@ -1,95 +1,185 @@
-import React, { useEffect, useRef, useState } from "react";
-import { useSelector } from "react-redux";
+import React, { useRef, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  updateUserFailure,
+  updateUserStart,
+  updateUserSuccess,
+} from "../redux/user/userSlice";
 
 const Profile = () => {
   const fileRef = useRef(null);
   const { currentUser } = useSelector((state) => state.user);
+  const dispatch = useDispatch();
 
-  const [file, setFile] = useState(null);
-  const [avatarUrl, setAvatarUrl] = useState(currentUser.avatar);
-  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadedAvatar, setUploadedAvatar] = useState(null);
+  const [formData, setFormData] = useState({
+    username: currentUser.username,
+    email: currentUser.email,
+    password: "",
+  });
 
-  // Show local preview immediately
-  useEffect(() => {
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setAvatarUrl(reader.result); // preview
-      reader.readAsDataURL(file);
+  const [message, setMessage] = useState("");       // Success messages
+  const [errorMessage, setErrorMessage] = useState(""); // Error messages
 
-      handleFileUpload(file); // send to backend
-    }
-  }, [file]);
+  // Handle input changes
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.id]: e.target.value });
+  };
 
-  const handleFileUpload = async (file) => {
-    const formData = new FormData();
-    formData.append("image", file);
-    setLoading(true);
+  // Handle file upload
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+    setErrorMessage("");
+    setMessage("");
+
+    const data = new FormData();
+    data.append("image", file);
 
     try {
-      const res = await fetch(`/api/upload/${currentUser._id}`, {
-        method: "POST",
-        body: formData,
-      });
+      const res = await fetch(
+        `http://localhost:3000/api/upload/${currentUser._id}`,
+        { method: "POST", body: data, credentials: "include" }
+      );
+
+      const result = await res.json();
+
+      if (!res.ok || !result.avatar) {
+        setErrorMessage(result.message || "Image upload failed");
+        return;
+      }
+
+      setUploadedAvatar(result.avatar);
+      setMessage("Image uploaded successfully!");
+    } catch (err) {
+      setErrorMessage(err.message || "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Handle form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setMessage("");
+    setErrorMessage("");
+
+    if (uploading) {
+      setErrorMessage("Please wait for image upload to complete");
+      return;
+    }
+
+    dispatch(updateUserStart());
+
+    try {
+      const updateData = { ...formData, avatar: uploadedAvatar || currentUser.avatar };
+
+      const res = await fetch(
+        `http://localhost:3000/api/user/update/${currentUser._id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updateData),
+          credentials: "include",
+        }
+      );
 
       const data = await res.json();
 
-      if (data.avatar) {
-        setAvatarUrl(data.avatar); // confirm with Cloudinary URL
-        console.log("Uploaded avatar URL:", data.avatar);
-      } else if (data.error) {
-        console.error("Upload error:", data.error);
+      if (!res.ok || data.success === false) {
+        setErrorMessage(data.message || "Update failed");
+        dispatch(updateUserFailure(data.message));
+        return;
       }
+
+      dispatch(updateUserSuccess(data));
+      setMessage("Profile updated successfully!");
+      setUploadedAvatar(null);
     } catch (err) {
-      console.error("Upload failed:", err);
-    } finally {
-      setLoading(false);
+      setErrorMessage(err.message || "Update failed");
+      dispatch(updateUserFailure(err.message));
     }
   };
+
+  const displayAvatar = uploadedAvatar || currentUser.avatar;
 
   return (
     <div className="p-3 max-w-lg mx-auto">
       <h1 className="text-3xl text-center font-semibold my-7">Profile</h1>
-      <form className="flex flex-col gap-4">
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <input
           type="file"
           ref={fileRef}
           hidden
           accept="image/*"
-          onChange={(e) => setFile(e.target.files[0])}
+          onChange={handleFileChange}
         />
 
-        <img
-          src={avatarUrl}
-          alt="avatar"
-          className="rounded-full h-24 w-24 object-cover cursor-pointer self-center"
-          onClick={() => fileRef.current.click()}
-        />
+        <div className="relative self-center">
+          <img
+            src={displayAvatar}
+            alt="avatar"
+            className="rounded-full h-24 w-24 object-cover cursor-pointer"
+            onClick={() => !uploading && fileRef.current.click()}
+          />
+          {uploading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full">
+              <div className="text-white text-xs text-center">
+                Uploading...
+              </div>
+            </div>
+          )}
+        </div>
 
         <input
           type="text"
-          placeholder="username"
+          id="username"
+          placeholder="Username"
           className="border p-3 rounded-lg"
-          defaultValue={currentUser.username}
+          value={formData.username}
+          onChange={handleChange}
         />
         <input
           type="email"
-          placeholder="email"
+          id="email"
+          placeholder="Email"
           className="border p-3 rounded-lg"
-          defaultValue={currentUser.email}
+          value={formData.email}
+          onChange={handleChange}
         />
         <input
           type="password"
-          placeholder="password"
+          id="password"
+          placeholder="Password (leave blank to keep current)"
           className="border p-3 rounded-lg"
+          value={formData.password}
+          onChange={handleChange}
         />
 
         <button
           type="submit"
+          disabled={uploading}
           className="bg-slate-700 rounded-lg text-white p-3 uppercase hover:opacity-95 disabled:opacity-80"
         >
-          {loading ? "Uploading..." : "Update"}
+          {uploading ? "Uploading Image..." : "Update"}
         </button>
+
+        {/* Messages */}
+        <div className="flex flex-col items-center mt-2 gap-1">
+          {message && <span className="text-green-700 text-sm">{message}</span>}
+          {errorMessage && <span className="text-red-700 text-sm">{errorMessage}</span>}
+        </div>
       </form>
+
+      {/* <div className="mt-4 p-2 bg-gray-100 rounded text-xs">
+        <p><strong>Debug Info:</strong></p>
+        <p>Current Avatar: {currentUser.avatar?.substring(0, 50)}...</p>
+        {uploadedAvatar && <p>New Avatar: {uploadedAvatar.substring(0, 50)}...</p>}
+      </div> */}
     </div>
   );
 };
