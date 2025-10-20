@@ -5,6 +5,7 @@ import cors from 'cors'
 import userRouter from "./routes/user.route.js";
 import authRouter from "./routes/auth.route.js";
 import uploadRouter from './routes/upload.js'
+import cookieParser from "cookie-parser";
 dotenv.config();
 mongoose
   .connect(process.env.MONGO)
@@ -18,6 +19,7 @@ mongoose
 const app = express();
 //Allowed json as input of the server
 app.use(express.json());
+app.use(cookieParser());
 
 
 app.listen(3000, () => {
