@@ -1,6 +1,9 @@
 import React, { useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
+  deleteUserFailure,
+  deleteUserStart,
+  deleteUserSuccess,
   updateUserFailure,
   updateUserStart,
   updateUserSuccess,
@@ -19,7 +22,7 @@ const Profile = () => {
     password: "",
   });
 
-  const [message, setMessage] = useState("");       // Success messages
+  const [message, setMessage] = useState(""); // Success messages
   const [errorMessage, setErrorMessage] = useState(""); // Error messages
 
   // Handle input changes
@@ -40,10 +43,11 @@ const Profile = () => {
     data.append("image", file);
 
     try {
-      const res = await fetch(
-        `http://localhost:3000/api/upload/${currentUser._id}`,
-        { method: "POST", body: data, credentials: "include" }
-      );
+      const res = await fetch(`/api/upload/${currentUser._id}`, {
+        method: "POST",
+        body: data,
+        credentials: "include",
+      });
 
       const result = await res.json();
 
@@ -75,17 +79,17 @@ const Profile = () => {
     dispatch(updateUserStart());
 
     try {
-      const updateData = { ...formData, avatar: uploadedAvatar || currentUser.avatar };
+      const updateData = {
+        ...formData,
+        avatar: uploadedAvatar || currentUser.avatar,
+      };
 
-      const res = await fetch(
-        `http://localhost:3000/api/user/update/${currentUser._id}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(updateData),
-          credentials: "include",
-        }
-      );
+      const res = await fetch(`/api/user/update/${currentUser._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updateData),
+        credentials: "include",
+      });
 
       const data = await res.json();
 
@@ -105,6 +109,23 @@ const Profile = () => {
   };
 
   const displayAvatar = uploadedAvatar || currentUser.avatar;
+
+  const handleDeleteUser = async () => {
+    try {
+      dispatch(deleteUserStart());
+      const res = await fetch(`api/user/delete/${currentUser._id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (data.success === false) {
+        dispatch(deleteUserFailure(data.message));
+        return;
+      }
+      dispatch(deleteUserSuccess(data));
+    } catch (error) {
+      dispatch(deleteUserFailure(error.message));
+    }
+  };
 
   return (
     <div className="p-3 max-w-lg mx-auto">
@@ -128,9 +149,7 @@ const Profile = () => {
           />
           {uploading && (
             <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full">
-              <div className="text-white text-xs text-center">
-                Uploading...
-              </div>
+              <div className="text-white text-xs text-center">Uploading...</div>
             </div>
           )}
         </div>
@@ -167,11 +186,19 @@ const Profile = () => {
         >
           {uploading ? "Uploading Image..." : "Update"}
         </button>
+        <div className="flex justify-between">
+          <span onClick={handleDeleteUser} className="text-red-700 cursor-pointer">
+            Delete Account
+          </span>
+          <span className="text-red-700 cursor-pointer">Sign Out</span>
+        </div>
 
         {/* Messages */}
         <div className="flex flex-col items-center mt-2 gap-1">
           {message && <span className="text-green-700 text-sm">{message}</span>}
-          {errorMessage && <span className="text-red-700 text-sm">{errorMessage}</span>}
+          {errorMessage && (
+            <span className="text-red-700 text-sm">{errorMessage}</span>
+          )}
         </div>
       </form>
 
