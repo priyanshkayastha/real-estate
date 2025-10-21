@@ -4,6 +4,9 @@ import {
   deleteUserFailure,
   deleteUserStart,
   deleteUserSuccess,
+  signOutUserFailure,
+  signOutUserSuccess,
+  signOutUserUserStart,
   updateUserFailure,
   updateUserStart,
   updateUserSuccess,
@@ -127,6 +130,21 @@ const Profile = () => {
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      dispatch(signOutUserUserStart());
+      const res = await fetch("/api/auth/signout");
+      const data = res.json();
+      if (data.success === false) {
+        dispatch(signOutUserFailure(data.message));
+        return;
+      }
+      dispatch(signOutUserSuccess(data));
+    } catch (error) {
+      dispatch(dispatch(signOutUserFailure(data.message)));
+    }
+  };
+
   return (
     <div className="p-3 max-w-lg mx-auto">
       <h1 className="text-3xl text-center font-semibold my-7">Profile</h1>
@@ -187,10 +205,15 @@ const Profile = () => {
           {uploading ? "Uploading Image..." : "Update"}
         </button>
         <div className="flex justify-between">
-          <span onClick={handleDeleteUser} className="text-red-700 cursor-pointer">
+          <span
+            onClick={handleDeleteUser}
+            className="text-red-700 cursor-pointer"
+          >
             Delete Account
           </span>
-          <span className="text-red-700 cursor-pointer">Sign Out</span>
+          <span onClick={handleSignOut} className="text-red-700 cursor-pointer">
+            Sign Out
+          </span>
         </div>
 
         {/* Messages */}
