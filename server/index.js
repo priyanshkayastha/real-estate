@@ -6,6 +6,7 @@ import cors from 'cors'
 import userRouter from "./routes/user.route.js";
 import authRouter from "./routes/auth.route.js";
 import uploadRouter from './routes/upload.js'
+import listingRouter from './routes/listing.route.js'
 import cookieParser from "cookie-parser";
 mongoose
   .connect(process.env.MONGO)
@@ -34,6 +35,7 @@ app.use(cors({
 app.use("/api/user", userRouter);
 app.use("/api/auth", authRouter);
 app.use("/api", uploadRouter);
+app.use("/api/listing", listingRouter);
 
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;
